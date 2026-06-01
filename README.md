@@ -22,12 +22,12 @@ Curated Pi packages, extensions, and skills I use.
 
 | Skill | Location | GitHub |
 |---|---|---|
-| `commit` | `~/.pi/agent/skills/commit` | _not provided_ |
-| `github` | `~/.pi/agent/skills/github` | _not provided_ |
-| `grill-me` | `~/.pi/agent/skills/grill-me` | _not provided_ |
-| `grill-with-docs` | `~/.pi/agent/skills/grill-with-docs` | _not provided_ |
-| `handoff` | `~/.pi/agent/skills/handoff` | _not provided_ |
-| `librarian` | `~/.pi/agent/skills/librarian` | _not provided_ |
-| `mermaid` | `~/.pi/agent/skills/mermaid` | _not provided_ |
-| `tdd` | `~/.pi/agent/skills/tdd` | _not provided_ |
-| `tmux` | `~/.pi/agent/skills/tmux` | _not provided_ |
+| `commit` | `~/.pi/agent/skills/commit` | https://github.com/mitsuhiko/agent-stuff/tree/main/skills/commit |
+| `github` | `~/.pi/agent/skills/github` | https://github.com/mitsuhiko/agent-stuff/tree/main/skills/github |
+| `grill-me` | `~/.pi/agent/skills/grill-me` | https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me |
+| `grill-with-docs` | `~/.pi/agent/skills/grill-with-docs` | https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs |
+| `handoff` | `~/.pi/agent/skills/handoff` | https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff |
+| `librarian` | `~/.pi/agent/skills/librarian` | https://github.com/mitsuhiko/agent-stuff/tree/main/skills/librarian |
+| `mermaid` | `~/.pi/agent/skills/mermaid` | https://github.com/mitsuhiko/agent-stuff/tree/main/skills/mermaid |
+| `tdd` | `~/.pi/agent/skills/tdd` | https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd |
+| `tmux` | `~/.pi/agent/skills/tmux` | https://github.com/mitsuhiko/agent-stuff/tree/main/skills/tmux |
