@@ -19,16 +19,19 @@ function compactPath(state: WorktreeState): string {
 }
 
 export function worktreeFooterText(state: WorktreeState): string | undefined {
-  if (state.mode === "inactive") return undefined;
-  if (state.mode === "pending") return `${paint(YELLOW, "⧉")} ${paint(YELLOW, "pending")}`;
-
   const branch = state.branch ?? "unknown";
+  const branchPart = `${paint(GREEN, "⎇")} ${paint(GREEN, branch)}`;
+  const separator = paint(DIM, " | ");
+
+  if (state.mode === "inactive") {
+    return `${paint(CYAN, "⧉")} ${paint(CYAN, "main-worktree")}${separator}${branchPart}`;
+  }
+  if (state.mode === "pending") return `${paint(YELLOW, "⧉")} ${paint(YELLOW, "pending")}${separator}${branchPart}`;
+
   const path = compactPath(state);
   const repo = basename(state.repoRoot);
   const location = path || repo;
   const worktreePart = `${paint(CYAN, "⧉")} ${paint(CYAN, location)}`;
-  const branchPart = `${paint(GREEN, "⎇")} ${paint(GREEN, branch)}`;
-  const separator = paint(DIM, " | ");
 
   if (state.mode === "conflict") return `${paint(RED, "⚠")} ${worktreePart}${separator}${branchPart}`;
   return `${worktreePart}${separator}${branchPart}`;

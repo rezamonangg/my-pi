@@ -15,8 +15,8 @@ export interface WorktreeState {
   createdAt?: string;
 }
 
-export function inactive(repoRoot: string): WorktreeState {
-  return { mode: "inactive", repoRoot };
+export function inactive(repoRoot: string, branch?: string): WorktreeState {
+  return { mode: "inactive", repoRoot, branch };
 }
 
 export function stateToolDetails(state: WorktreeState) {
@@ -54,5 +54,5 @@ export function formatState(state: WorktreeState): string {
     return `pi-worktree ${state.mode}: ${state.worktreeRoot} on ${state.branch ?? "unknown"}`;
   }
   if (state.mode === "pending") return `pi-worktree pending: ${state.pendingQuestion ?? "setup required"}`;
-  return "pi-worktree inactive";
+  return `pi-worktree inactive: main-worktree on ${state.branch ?? "unknown"}`;
 }

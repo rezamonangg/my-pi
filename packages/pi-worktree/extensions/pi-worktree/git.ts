@@ -32,6 +32,11 @@ export async function findRepoRoot(cwd: string): Promise<string> {
   return stdout.trim();
 }
 
+export async function tryFindRepoRoot(cwd: string): Promise<string | undefined> {
+  const result = await git(cwd, ["rev-parse", "--show-toplevel"], { reject: false });
+  return result.code === 0 ? result.stdout.trim() : undefined;
+}
+
 export async function currentBranch(cwd: string): Promise<string> {
   const { stdout } = await git(cwd, ["branch", "--show-current"]);
   return stdout.trim();

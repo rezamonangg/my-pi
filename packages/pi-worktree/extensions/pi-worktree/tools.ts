@@ -177,7 +177,8 @@ export function registerWorktreeTools(pi: ExtensionAPI, env: ToolEnv) {
     async execute(_id, params: any, _signal, _onUpdate, ctx) {
       const state = env.getState();
       if (!state.worktreeRoot) {
-        const next = inactive(state.repoRoot);
+        const branch = await currentBranch(state.repoRoot).catch(() => "unknown");
+        const next = inactive(state.repoRoot, branch || "detached");
         await env.setState(next, ctx);
         return text("pi-worktree inactive.", stateToolDetails(next));
       }
@@ -187,7 +188,8 @@ export function registerWorktreeTools(pi: ExtensionAPI, env: ToolEnv) {
         if (status.stdout.trim() && !params.force) return text(`Refusing to remove dirty worktree. Pass force:true only after rescue/review.\n${status.stdout}`, stateToolDetails(state));
         body += `\n${await removeWorktree(state.repoRoot, state.worktreeRoot, !!params.force)}`;
       }
-      const next = inactive(state.repoRoot);
+      const branch = await currentBranch(state.repoRoot).catch(() => "unknown");
+      const next = inactive(state.repoRoot, branch || "detached");
       await env.setState(next, ctx);
       return text(body, stateToolDetails(next));
     },

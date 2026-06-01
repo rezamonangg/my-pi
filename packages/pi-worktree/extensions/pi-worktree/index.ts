@@ -1,5 +1,5 @@
 import { createBashTool, isToolCallEventType, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { findRepoRoot } from "./git.js";
+import { currentBranch, tryFindRepoRoot } from "./git.js";
 import { setWorktreeFooter } from "./footer.js";
 import { routeCommand } from "./paths.js";
 import { routeToolCall } from "./routing.js";
@@ -23,9 +23,15 @@ export default function piWorktree(pi: ExtensionAPI) {
   }
 
   pi.on("session_start", async (_event, ctx) => {
-    const repoRoot = await findRepoRoot(ctx.cwd);
+    const repoRoot = await tryFindRepoRoot(ctx.cwd);
+    if (!repoRoot) {
+      state = undefined;
+      ctx.ui?.setStatus?.("pi-worktree", undefined);
+      return;
+    }
+    const branch = await currentBranch(repoRoot).catch(() => "unknown");
     const fromSession = restoreFromToolDetails(ctx.sessionManager.getBranch(), repoRoot);
-    state = fromSession ?? inactive(repoRoot);
+    state = fromSession ?? inactive(repoRoot, branch || "detached");
     setWorktreeFooter(ctx, state);
     if (state.mode === "active" || state.mode === "conflict") {
       ctx.ui?.notify?.(`pi-worktree restored: ${state.worktreeRoot} on ${state.branch}`, "info");
@@ -34,9 +40,23 @@ export default function piWorktree(pi: ExtensionAPI) {
 
   pi.on("input", async (event, ctx) => {
     if (event.source === "extension") return;
-    const current = state ?? inactive(await findRepoRoot(ctx.cwd));
-    state = current;
-    if (!ACTIVATION_RE.test(event.text)) return;
+    const wantsWorktree = ACTIVATION_RE.test(event.text);
+    if (!state) {
+      const repoRoot = await tryFindRepoRoot(ctx.cwd);
+      if (!repoRoot) {
+        if (wantsWorktree) {
+          return {
+            action: "transform" as const,
+            text: `${event.text}\n\npi-worktree unavailable: current directory is not inside a git repository. Open a git repo before calling worktree_start.`,
+          };
+        }
+        return;
+      }
+      const branch = await currentBranch(repoRoot).catch(() => "unknown");
+      state = inactive(repoRoot, branch || "detached");
+    }
+    const current = state;
+    if (!wantsWorktree) return;
     if (current.mode === "active" || current.mode === "conflict") return;
     const pending: WorktreeState = {
       mode: "pending",
