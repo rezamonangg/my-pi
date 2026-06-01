@@ -18,6 +18,11 @@ function compactPath(state: WorktreeState): string {
   return rel && !rel.startsWith("..") ? rel : state.worktreeRoot;
 }
 
+function pathAlreadyNamesBranch(path: string, branch: string): boolean {
+  if (!path || !branch || branch === "unknown") return false;
+  return path === branch || path.endsWith(`/${branch}`);
+}
+
 export function worktreeFooterText(state: WorktreeState): string | undefined {
   const branch = state.branch ?? "unknown";
   const branchPart = `${paint(GREEN, "⎇")} ${paint(GREEN, branch)}`;
@@ -33,8 +38,12 @@ export function worktreeFooterText(state: WorktreeState): string | undefined {
   const location = path || repo;
   const worktreePart = `${paint(CYAN, "⧉")} ${paint(CYAN, location)}`;
 
-  if (state.mode === "conflict") return `${paint(RED, "⚠")} ${worktreePart}${separator}${branchPart}`;
-  return `${worktreePart}${separator}${branchPart}`;
+  const fullWorktreePart = pathAlreadyNamesBranch(path, branch)
+    ? worktreePart
+    : `${worktreePart}${separator}${branchPart}`;
+
+  if (state.mode === "conflict") return `${paint(RED, "⚠")} ${fullWorktreePart}`;
+  return fullWorktreePart;
 }
 
 export function setWorktreeFooter(ctx: any, state: WorktreeState): void {
