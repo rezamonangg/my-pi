@@ -37,6 +37,26 @@ test("allows active worktree absolute path", async () => {
   assert.equal(routed.routedPath, join(worktreeRoot, "src", "a.ts"));
 });
 
+test("allows pi-managed absolute path", async () => {
+  const { state } = await fixture();
+  const previousHome = process.env.HOME;
+  const home = await mkdtemp(join(tmpdir(), "pi-home-"));
+  const skillDir = join(home, ".pi", "agent", "skills", "tdd");
+  await mkdir(skillDir, { recursive: true });
+  const skillPath = join(skillDir, "SKILL.md");
+  await writeFile(skillPath, "# tdd\n");
+
+  try {
+    process.env.HOME = home;
+    const routed = await routePath(state, skillPath);
+    assert.equal(routed.routedPath, await realpath(skillPath));
+    assert.equal(routed.reason, "pi-managed absolute path allowed");
+  } finally {
+    if (previousHome === undefined) delete process.env.HOME;
+    else process.env.HOME = previousHome;
+  }
+});
+
 test("blocks outside path", async () => {
   const { state } = await fixture();
   await assert.rejects(() => routePath(state, "/etc/passwd"), /outside active worktree/);

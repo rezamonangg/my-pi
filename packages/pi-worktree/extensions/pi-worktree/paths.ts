@@ -1,6 +1,12 @@
+import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import { homedir } from "node:os";
 import { lstat, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { WorktreeState } from "./state.js";
+
+const require = createRequire(import.meta.url);
+let piPackageRoot: string | null | undefined;
 
 export interface RouteResult {
   input: string;
@@ -16,6 +22,32 @@ function stripTag(path: string): string {
 function inside(parent: string, child: string): boolean {
   const rel = relative(parent, child);
   return rel === "" || (!!rel && !rel.startsWith("..") && !isAbsolute(rel));
+}
+
+function findPackageRoot(entry: string): string | null {
+  let cur = dirname(entry);
+  while (cur && cur !== dirname(cur)) {
+    if (existsSync(join(cur, "package.json"))) return cur;
+    cur = dirname(cur);
+  }
+  return null;
+}
+
+function getPiPackageRoot(): string | null {
+  if (piPackageRoot !== undefined) return piPackageRoot;
+  try {
+    piPackageRoot = findPackageRoot(require.resolve("@earendil-works/pi-coding-agent"));
+  } catch {
+    piPackageRoot = null;
+  }
+  return piPackageRoot;
+}
+
+export function isPiManagedPath(target: string): boolean {
+  const resolved = resolve(target);
+  const home = process.env.HOME || homedir();
+  const roots = [home ? resolve(home, ".pi") : null, getPiPackageRoot()].filter((root): root is string => !!root);
+  return roots.some((root) => inside(root, resolved));
 }
 
 async function nearestExisting(path: string): Promise<string> {
@@ -69,6 +101,8 @@ export async function routePath(state: WorktreeState, inputPath: string): Promis
       if (isSiblingWorktreePath(repoRoot, worktreeRoot, abs)) throw new Error(`Blocked sibling worktree path: ${inputPath}`);
       repoRelative = relative(repoRoot, abs);
       reason = "main checkout absolute path remapped";
+    } else if (isPiManagedPath(resolve(raw)) || isPiManagedPath(abs)) {
+      return { input: inputPath, routedPath: abs, repoRelative: "", reason: "pi-managed absolute path allowed" };
     } else {
       throw new Error(`Blocked path outside active worktree: ${inputPath}`);
     }

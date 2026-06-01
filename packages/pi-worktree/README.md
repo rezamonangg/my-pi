@@ -186,10 +186,11 @@ When active:
 | `/repo/src/a.ts` | remaps to `/repo/.worktree/<branch>/src/a.ts` |
 | `/repo/.worktree/<active>/src/a.ts` | allowed |
 | `/repo/.worktree/<other>/src/a.ts` | blocked |
+| `~/.pi/agent/skills/tdd/SKILL.md` | allowed as a Pi-managed path |
 | `/etc/passwd` | blocked |
 | `../outside` | blocked |
 
-Safety checks use real filesystem resolution and block symlink escapes.
+Safety checks use real filesystem resolution and block symlink escapes. Pi-managed paths (`~/.pi` and the running Pi package) pass through so skills, package docs, and Pi internals remain readable while routing is active.
 
 ## Bash behavior
 
@@ -206,21 +207,34 @@ Pi's process cwd and status bar may still show the original repo. Use `worktree_
 
 ## Footer
 
-The extension publishes a colored status item:
+The extension installs a compact custom footer with the fields used during agent work:
 
 ```text
-⧉ .worktree/refactor/selector-code-style | ⎇ refactor/selector-code-style
+GPT-5.5 | think:high | dir my-pi | ⧉ .worktree/refactor/selector-code-style | ⎇ refactor/selector-code-style | ◫ 29.5%/272k AC | cache in: 3.0M | (sub)
 ```
+
+Fields:
+
+- model name
+- thinking effort
+- current directory basename
+- worktree label/path (`main-worktree` when routing is inactive)
+- branch
+- context usage with auto-compaction marker (`AC`)
+- cache-read total
+- subscription marker when OAuth subscription auth is active
 
 Colors:
 
-- worktree icon/path: cyan
+- model/thinking/subscription: magenta
+- directory/worktree icon/path: cyan
 - branch icon/name: green
+- context/cache: blue
 - separator: dim gray
 - pending: yellow
 - conflict: red warning
 
-If `pi-powerline-footer` is installed, this appears in its extension-status area.
+If a Pi version does not support custom footers, `pi-worktree` falls back to its old extension status item.
 
 ## `@` picker limitation
 

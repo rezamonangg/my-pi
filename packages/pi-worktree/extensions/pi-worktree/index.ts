@@ -11,10 +11,14 @@ const ACTIVATION_RE = /\b(use (a )?worktree|use worktree|don't touch main checko
 export default function piWorktree(pi: ExtensionAPI) {
   let state: WorktreeState | undefined;
 
+  function refreshFooter(ctx?: any) {
+    if (ctx && state) setWorktreeFooter(ctx, state, { getThinkingLevel: () => pi.getThinkingLevel() });
+  }
+
   async function setState(next: WorktreeState, ctx?: any) {
     state = next;
     await saveDiskState(next);
-    if (ctx) setWorktreeFooter(ctx, next);
+    refreshFooter(ctx);
   }
 
   function getState(): WorktreeState {
@@ -27,12 +31,13 @@ export default function piWorktree(pi: ExtensionAPI) {
     if (!repoRoot) {
       state = undefined;
       ctx.ui?.setStatus?.("pi-worktree", undefined);
+      ctx.ui?.setFooter?.(undefined);
       return;
     }
     const branch = await currentBranch(repoRoot).catch(() => "unknown");
     const fromSession = restoreFromToolDetails(ctx.sessionManager.getBranch(), repoRoot);
     state = fromSession ?? inactive(repoRoot, branch || "detached");
-    setWorktreeFooter(ctx, state);
+    refreshFooter(ctx);
     if (state.mode === "active" || state.mode === "conflict") {
       ctx.ui?.notify?.(`pi-worktree restored: ${state.worktreeRoot} on ${state.branch}`, "info");
     }
@@ -71,6 +76,10 @@ export default function piWorktree(pi: ExtensionAPI) {
       text: `${event.text}\n\npi-worktree activation detected. First call worktree_start. Do not read, edit, write, or run bash until worktree_start succeeds. Use an explicit branch if user provided one; otherwise infer a conventional branch from the task or ask if unclear.`,
     };
   });
+
+  pi.on("model_select", async (_event, ctx) => refreshFooter(ctx));
+  pi.on("thinking_level_select", async (_event, ctx) => refreshFooter(ctx));
+  pi.on("agent_end", async (_event, ctx) => refreshFooter(ctx));
 
   pi.on("tool_call", async (event) => {
     if (!state) return;
