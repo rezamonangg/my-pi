@@ -37,11 +37,10 @@ export default function piWorktree(pi: ExtensionAPI) {
     }
     const branch = await currentBranch(repoRoot).catch(() => "unknown");
     let fromSession = restoreFromToolDetails(ctx.sessionManager.getBranch(), repoRoot);
-    // Don't restore active/conflict worktree state when user launched pi
-    // from outside the worktree (e.g. from main checkout).
+    // Don't restore active/conflict state if the worktree directory was cleaned up.
     if (fromSession && (fromSession.mode === "active" || fromSession.mode === "conflict")) {
       const wtRoot = fromSession.worktreeRoot;
-      if (!wtRoot || !existsSync(wtRoot) || !ctx.cwd.startsWith(wtRoot)) {
+      if (!wtRoot || !existsSync(wtRoot)) {
         fromSession = undefined;
       }
     }
