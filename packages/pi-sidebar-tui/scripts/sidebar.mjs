@@ -115,7 +115,16 @@ function readGitStatus(repoPath) {
 function activePiWorktreeRoot(repoPath) {
 	try {
 		const state = JSON.parse(fs.readFileSync(path.join(repoPath, ".git", "pi-worktree-state.json"), "utf8"));
-		if ((state?.mode === "active" || state?.mode === "conflict") && typeof state?.worktreeRoot === "string") return state.worktreeRoot;
+		if ((state?.mode === "active" || state?.mode === "conflict") && typeof state?.worktreeRoot === "string") {
+			const wtRoot = state.worktreeRoot;
+			// Validate the worktree directory still exists (not stale from a cleaned-up session).
+			try {
+				const wtGit = fs.readFileSync(path.join(wtRoot, ".git"), "utf8").trim();
+				if (wtGit.startsWith("gitdir:")) return wtRoot;
+			} catch {
+				// Directory or .git file missing — stale worktree, fall through.
+			}
+		}
 	} catch {
 		// No pi-worktree state or inactive main checkout.
 	}
