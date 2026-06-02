@@ -1,7 +1,9 @@
 {
-  "name": "pi-sidebar-tui",
+  "name": "@rezamonangg/pi-sidebar-tui",
   "version": "0.1.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "keywords": ["pi-package", "pi", "sidebar", "tui", "tmux"],
   "description": "Tmux right sidebar for Pi showing git file changes.",
