@@ -85,7 +85,49 @@ export async function detectBaseRef(repoRoot: string): Promise<string> {
   return branch || "HEAD";
 }
 
+export interface WorktreeEntry {
+  path: string;
+  branch: string;
+  head: string;
+}
+
+export async function listWorktrees(repoRoot: string): Promise<WorktreeEntry[]> {
+  const { stdout } = await git(repoRoot, ["worktree", "list", "--porcelain"], { reject: false });
+  const entries: WorktreeEntry[] = [];
+  let current: Partial<WorktreeEntry> = {};
+  for (const line of stdout.split("\n")) {
+    if (line.startsWith("worktree ")) {
+      if (current.path) entries.push(current as WorktreeEntry);
+      current = { path: line.slice("worktree ".length) };
+    } else if (line.startsWith("branch ")) {
+      current.branch = line.slice("branch refs/heads/".length);
+    } else if (line.startsWith("HEAD ")) {
+      current.head = line.slice("HEAD ".length);
+    }
+  }
+  if (current.path) entries.push(current as WorktreeEntry);
+  return entries;
+}
+
+export async function findWorktreeByBranch(repoRoot: string, branch: string): Promise<WorktreeEntry | undefined> {
+  const wts = await listWorktrees(repoRoot);
+  return wts.find((wt) => wt.branch === branch);
+}
+
 export async function createWorktree(repoRoot: string, worktreeRoot: string, branch: string, baseRef?: string): Promise<string> {
+  const branchExists = await refExists(repoRoot, `refs/heads/${branch}`);
+  if (branchExists) {
+    // Branch already exists — find existing worktree or add new worktree on existing branch.
+    const existing = await findWorktreeByBranch(repoRoot, branch);
+    if (existing) {
+      return `Worktree already exists for branch ${branch} at ${existing.path}`;
+    }
+    // No worktree for this branch yet — add without -b flag.
+    await mkdir(dirname(worktreeRoot), { recursive: true });
+    const args = ["worktree", "add", worktreeRoot, branch];
+    const { stdout, stderr } = await git(repoRoot, args);
+    return `${stdout}${stderr}`.trim();
+  }
   await mkdir(dirname(worktreeRoot), { recursive: true });
   const args = ["worktree", "add", "-b", branch, worktreeRoot, baseRef ?? (await detectBaseRef(repoRoot))];
   const { stdout, stderr } = await git(repoRoot, args);
