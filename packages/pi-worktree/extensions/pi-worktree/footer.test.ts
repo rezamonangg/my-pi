@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { join } from "node:path";
-import { worktreeFooterText, worktreePowerlineFooterText } from "./footer.js";
+import { worktreeCompactFooterText, worktreeFooterText } from "./footer.js";
 import type { WorktreeState } from "./state.js";
 
 function stripAnsi(text: string | undefined): string {
@@ -34,7 +34,7 @@ test("active footer keeps branch when path does not contain branch", () => {
   assert.equal(stripAnsi(worktreeFooterText(state)), "⧉ .worktree/custom-location | ⎇ feat/demo");
 });
 
-test("powerline footer includes model thinking dir worktree branch context cache", () => {
+test("compact footer includes worktree branch dir model thinking context cache", () => {
   const repoRoot = "/repo/my-pi";
   const state: WorktreeState = {
     mode: "inactive",
@@ -54,7 +54,7 @@ test("powerline footer includes model thinking dir worktree branch context cache
   };
 
   assert.equal(
-    stripAnsi(worktreePowerlineFooterText(ctx, state, { thinkingLevel: "high", gitBranch: "main" })),
-    "GPT-5.5 | think:high | dir my-pi | ⧉ main-worktree | ⎇ main | ◫ 29.5%/272k AC | cache in: 3.0M | (sub)",
+    stripAnsi(worktreeCompactFooterText(ctx, state, { thinkingLevel: "high", gitBranch: "main" })),
+    "⧉ main-worktree @ ⎇ main | my-pi | GPT-5.5 think:high | ctx 29.5%/272k AC | cache 3.0M",
   );
 });

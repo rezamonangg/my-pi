@@ -72,10 +72,6 @@ function cacheRead(ctx: any): number {
   return total;
 }
 
-function usingSubscription(ctx: any): boolean {
-  return !!(ctx?.model && ctx?.modelRegistry?.isUsingOAuth?.(ctx.model));
-}
-
 function activeBranch(state: WorktreeState, render?: FooterRenderOptions): string {
   if (state.mode === "inactive") return render?.gitBranch ?? state.branch ?? "unknown";
   return state.branch ?? render?.gitBranch ?? "unknown";
@@ -114,22 +110,20 @@ function worktreeOnlyText(state: WorktreeState): string {
   return state.mode === "conflict" ? `${paint(RED, "⚠")} ${worktreePart}` : worktreePart;
 }
 
-export function worktreePowerlineFooterText(ctx: any, state: WorktreeState, render?: FooterRenderOptions): string {
+export function worktreeCompactFooterText(ctx: any, state: WorktreeState, render?: FooterRenderOptions): string {
   const branch = activeBranch(state, render);
   const dir = basename(ctx?.cwd ?? state.repoRoot) || ctx?.cwd || state.repoRoot;
   const thinkingLevel = render?.thinkingLevel ?? "off";
   const cacheIn = cacheRead(ctx);
+  const worktreeAndBranch = `${worktreeOnlyText(state)} ${paint(DIM, "@")} ${paint(GREEN, "⎇")} ${paint(GREEN, branch)}`;
   const parts = [
-    paint(MAGENTA, modelName(ctx)),
-    paint(MAGENTA, `think:${thinkingLevel}`),
-    `${paint(CYAN, "dir")} ${paint(CYAN, dir)}`,
-    worktreeOnlyText(state),
-    `${paint(GREEN, "⎇")} ${paint(GREEN, branch)}`,
-    paint(BLUE, contextUsageText(ctx)),
+    worktreeAndBranch,
+    paint(CYAN, dir),
+    `${paint(MAGENTA, modelName(ctx))} ${paint(MAGENTA, `think:${thinkingLevel}`)}`,
+    paint(BLUE, contextUsageText(ctx).replace(/^◫ /, "ctx ")),
   ];
 
-  if (cacheIn > 0) parts.push(paint(BLUE, `cache in: ${formatTokens(cacheIn)}`));
-  if (usingSubscription(ctx)) parts.push(paint(MAGENTA, "(sub)"));
+  if (cacheIn > 0) parts.push(paint(BLUE, `cache ${formatTokens(cacheIn)}`));
 
   return parts.filter(Boolean).join(separator());
 }
@@ -146,7 +140,7 @@ export function setWorktreeFooter(ctx: any, state: WorktreeState, options: Foote
     return {
       invalidate() {},
       render(width: number): string[] {
-        const line = worktreePowerlineFooterText(ctx, state, {
+        const line = worktreeCompactFooterText(ctx, state, {
           gitBranch: footerData?.getGitBranch?.(),
           thinkingLevel: options.getThinkingLevel?.(),
         });

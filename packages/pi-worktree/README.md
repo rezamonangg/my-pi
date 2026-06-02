@@ -210,7 +210,7 @@ Pi's process cwd and status bar may still show the original repo. Use `worktree_
 The extension installs a compact custom footer with the fields used during agent work:
 
 ```text
-GPT-5.5 | think:high | dir my-pi | ⧉ .worktree/refactor/selector-code-style | ⎇ refactor/selector-code-style | ◫ 29.5%/272k AC | cache in: 3.0M | (sub)
+⧉ .worktree/refactor/selector-code-style @ ⎇ refactor/selector-code-style | my-pi | GPT-5.5 think:high | ctx 29.5%/272k AC | cache 3.0M
 ```
 
 Fields:
@@ -222,11 +222,10 @@ Fields:
 - branch
 - context usage with auto-compaction marker (`AC`)
 - cache-read total
-- subscription marker when OAuth subscription auth is active
 
 Colors:
 
-- model/thinking/subscription: magenta
+- model/thinking: magenta
 - directory/worktree icon/path: cyan
 - branch icon/name: green
 - context/cache: blue
