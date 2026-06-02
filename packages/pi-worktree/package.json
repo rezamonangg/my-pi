@@ -8,12 +8,12 @@
   "keywords": ["pi-package", "pi", "worktree"],
   "description": "Pi package that routes agent file and shell work into an isolated git worktree.",
   "pi": {
-    "extensions": ["./extensions/pi-worktree/index.ts"],
+    "extensions": ["./extensions/index.ts"],
     "skills": ["./skills"]
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test --import tsx extensions/pi-worktree/*.test.ts"
+    "test": "node --test --import tsx extensions/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "latest",

@@ -263,7 +263,7 @@ npm run typecheck
 ```json
 {
   "pi": {
-    "extensions": ["./extensions/pi-worktree/index.ts"],
+    "extensions": ["./extensions/index.ts"],
     "skills": ["./skills"]
   }
 }

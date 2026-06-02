@@ -8,7 +8,7 @@
   "keywords": ["pi-package", "pi", "sidebar", "tui", "tmux"],
   "description": "Tmux right sidebar for Pi showing git file changes.",
   "pi": {
-    "extensions": ["./extensions/pi-sidebar-tui/index.ts"],
+    "extensions": ["./extensions/index.ts"],
     "themes": ["./themes"]
   },
   "scripts": {

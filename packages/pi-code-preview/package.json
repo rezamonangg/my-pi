@@ -8,7 +8,7 @@
   "keywords": ["pi-package", "pi", "markdown", "preview", "syntax-highlighting", "tmux"],
   "description": "Markdown + code preview for pi TUI using native theme-aware syntax highlighting.",
   "pi": {
-    "extensions": ["./extensions/pi-code-preview/index.ts"]
+    "extensions": ["./extensions/index.ts"]
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
