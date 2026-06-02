@@ -180,7 +180,16 @@ function selectStatusTarget(cwd: string): StatusTarget {
 function activePiWorktreeRoot(repoRoot: string): string | undefined {
 	try {
 		const state = JSON.parse(readFileSync(join(repoRoot, ".git", "pi-worktree-state.json"), "utf8"));
-		if ((state?.mode === "active" || state?.mode === "conflict") && typeof state?.worktreeRoot === "string") return state.worktreeRoot;
+		if ((state?.mode === "active" || state?.mode === "conflict") && typeof state?.worktreeRoot === "string") {
+			const wtRoot = state.worktreeRoot;
+			// Validate the worktree directory still exists (not stale from a cleaned-up session).
+			try {
+				const wtGit = readFileSync(join(wtRoot, ".git"), "utf8").trim();
+				if (wtGit.startsWith("gitdir:")) return wtRoot;
+			} catch {
+				// Directory or .git file missing — stale worktree, fall through.
+			}
+		}
 	} catch {
 		// No pi-worktree state or inactive main checkout.
 	}
