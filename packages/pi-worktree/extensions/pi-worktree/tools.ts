@@ -3,7 +3,7 @@ import { readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { Type } from "typebox";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { createWorktree, currentBranch, detectBaseRef, ensureWorktreeExcluded, git, isValidBranchName, removeWorktree, slugify, truncate } from "./git.js";
+import { createWorktree, currentBranch, detectBaseRef, ensureWorktreeExcluded, findWorktreeByBranch, git, isValidBranchName, removeWorktree, slugify, truncate } from "./git.js";
 import { routePath } from "./paths.js";
 import { formatState, inactive, saveDiskState, stateToolDetails, type WorktreeState } from "./state.js";
 
@@ -56,18 +56,33 @@ export function registerWorktreeTools(pi: ExtensionAPI, env: ToolEnv) {
       if (!(await isValidBranchName(repoRoot, branch))) return text(`Invalid branch name: ${branch}`, stateToolDetails(current));
       const baseRef = params.baseRef ?? (await detectBaseRef(repoRoot));
       const worktreeRoot = join(repoRoot, ".worktree", ...branch.split(/[\\/]+/g));
-      if (existsSync(worktreeRoot)) return text(`Worktree path already exists: ${worktreeRoot}`, stateToolDetails(current));
+
+      // Check if a worktree already exists for this branch (any path).
+      const existingWt = await findWorktreeByBranch(repoRoot, branch);
+      if (existingWt) {
+        const next: WorktreeState = { mode: "active", repoRoot, worktreeRoot: existingWt.path, branch, baseRef, originalCwd: ctx.cwd, createdAt: new Date().toISOString() };
+        await env.setState(next, ctx);
+        return text(`Activated existing worktree ${existingWt.path} on ${branch}.`, stateToolDetails(next));
+      }
+
+      if (existsSync(worktreeRoot)) return text(`Path ${worktreeRoot} already exists but is not a registered git worktree. Remove it manually and retry.`, stateToolDetails(current));
       const excluded = await ensureWorktreeExcluded(repoRoot);
-      const output = await createWorktree(repoRoot, worktreeRoot, branch, baseRef);
+      let output = await createWorktree(repoRoot, worktreeRoot, branch, baseRef);
+      let actualWorktreeRoot = worktreeRoot;
+      // createWorktree may detect a worktree already registered for this branch.
+      const alreadyExistsMatch = output.match(/^Worktree already exists for branch .* at (.+)$/m);
+      if (alreadyExistsMatch) {
+        actualWorktreeRoot = alreadyExistsMatch[1]!;
+      }
       const miseNotes: string[] = [];
       for (const name of ["mise.toml", ".mise.toml"]) {
-        const cfg = join(worktreeRoot, name);
+        const cfg = join(actualWorktreeRoot, name);
         if (existsSync(cfg)) {
           if (params.trustMise) {
-            const result = await git(worktreeRoot, ["-c", "advice.detachedHead=false", "status", "--short"], { reject: false });
+            const result = await git(actualWorktreeRoot, ["-c", "advice.detachedHead=false", "status", "--short"], { reject: false });
             void result;
             const trust = await import("node:child_process").then(({ execFileSync }) => {
-              try { execFileSync("mise", ["trust", cfg], { cwd: worktreeRoot, encoding: "utf8" }); return "trusted"; }
+              try { execFileSync("mise", ["trust", cfg], { cwd: actualWorktreeRoot, encoding: "utf8" }); return "trusted"; }
               catch (e: any) { return `trust skipped/failed: ${e.message}`; }
             });
             miseNotes.push(`${name}: ${trust}`);
@@ -76,10 +91,10 @@ export function registerWorktreeTools(pi: ExtensionAPI, env: ToolEnv) {
           }
         }
       }
-      const next: WorktreeState = { mode: "active", repoRoot, worktreeRoot, branch, baseRef, originalCwd: ctx.cwd, createdAt: new Date().toISOString() };
+      const next: WorktreeState = { mode: "active", repoRoot, worktreeRoot: actualWorktreeRoot, branch, baseRef, originalCwd: ctx.cwd, createdAt: new Date().toISOString() };
       await env.setState(next, ctx);
       return text([
-        `Activated ${worktreeRoot} on ${branch} from ${baseRef}.`,
+        `Activated ${actualWorktreeRoot} on ${branch} from ${baseRef}.`,
         excluded ? "Added .worktree/ to .git/info/exclude." : ".worktree/ already excluded locally.",
         output,
         ...miseNotes,
