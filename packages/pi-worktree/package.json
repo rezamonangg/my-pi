@@ -1,7 +1,9 @@
 {
-  "name": "pi-worktree",
+  "name": "@rezamonangg/pi-worktree",
   "version": "0.1.0",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "keywords": ["pi-package", "pi", "worktree"],
   "description": "Pi package that routes agent file and shell work into an isolated git worktree.",
