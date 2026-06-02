@@ -1,6 +1,0 @@
-{
-  "packages": [
-    "../packages/pi-sidebar-tui/extensions/pi-sidebar-tui",
-    "../packages/pi-worktree/extensions/pi-worktree"
-  ]
-}
