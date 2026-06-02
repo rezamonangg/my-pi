@@ -1,4 +1,5 @@
 import { createBashTool, isToolCallEventType, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { existsSync } from "node:fs";
 import { currentBranch, tryFindRepoRoot } from "./git.js";
 import { setWorktreeFooter } from "./footer.js";
 import { routeCommand } from "./paths.js";
@@ -35,8 +36,17 @@ export default function piWorktree(pi: ExtensionAPI) {
       return;
     }
     const branch = await currentBranch(repoRoot).catch(() => "unknown");
-    const fromSession = restoreFromToolDetails(ctx.sessionManager.getBranch(), repoRoot);
+    let fromSession = restoreFromToolDetails(ctx.sessionManager.getBranch(), repoRoot);
+    // Don't restore active/conflict worktree state when user launched pi
+    // from outside the worktree (e.g. from main checkout).
+    if (fromSession && (fromSession.mode === "active" || fromSession.mode === "conflict")) {
+      const wtRoot = fromSession.worktreeRoot;
+      if (!wtRoot || !existsSync(wtRoot) || !ctx.cwd.startsWith(wtRoot)) {
+        fromSession = undefined;
+      }
+    }
     state = fromSession ?? inactive(repoRoot, branch || "detached");
+    await saveDiskState(state);
     refreshFooter(ctx);
     if (state.mode === "active" || state.mode === "conflict") {
       ctx.ui?.notify?.(`pi-worktree restored: ${state.worktreeRoot} on ${state.branch}`, "info");
