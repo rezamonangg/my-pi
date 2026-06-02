@@ -146,14 +146,34 @@ function renderMarkdownLine(line: string, width: number, theme: Theme): string[]
 }
 
 function renderCodeBlock(lines: string[], lang: string | undefined, width: number, theme: Theme): string[] {
+	const label = lang ? lang.trim() : undefined;
+	const innerWidth = Math.max(1, width - 4); // "│ " + " │"
 	const highlighted = highlightCode(lines.join("\n"), lang);
+
+	// Top border: ╭─ label ───────╮
 	const output: string[] = [];
-	if (lang) {
-		output.push(theme.fg("muted", `  ${lang}`));
+	if (label) {
+		const topPrefix = `╭─ ${label} `;
+		const top = topPrefix + "─".repeat(Math.max(1, width - stripAnsi(topPrefix).length - 1)) + "╮";
+		output.push(theme.fg("mdCodeBlockBorder", top));
+	} else {
+		output.push(theme.fg("mdCodeBlockBorder", "╭" + "─".repeat(Math.max(1, width - 2)) + "╮"));
 	}
+
+	// Content: │ code padded │
 	for (const line of highlighted) {
-		output.push("  " + line);
+		const visibleLen = stripAnsi(line).length;
+		const pad = Math.max(0, innerWidth - visibleLen);
+		output.push(
+			theme.fg("mdCodeBlockBorder", "│ ") +
+			line +
+			" ".repeat(pad) +
+			theme.fg("mdCodeBlockBorder", " │"),
+		);
 	}
+
+	// Bottom border: ╰──────────────╯
+	output.push(theme.fg("mdCodeBlockBorder", "╰" + "─".repeat(Math.max(1, width - 2)) + "╯"));
 	return output;
 }
 
