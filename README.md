@@ -9,6 +9,8 @@ Curated Pi packages, extensions, and skills I use.
 | `pi-worktree` | [`packages/pi-worktree`](packages/pi-worktree) |
 | `pi-sidebar-tui` | [`packages/pi-sidebar-tui`](packages/pi-sidebar-tui) |
 
+> **Requires [tmux](https://github.com/tmux/tmux) installed.** Start pi inside a tmux session, then run `/sidebar`.
+
 ## Curated Pi List
 
 ### Curated extensions
