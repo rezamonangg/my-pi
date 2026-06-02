@@ -56,7 +56,7 @@ function getLastAssistantText(event: { messages?: unknown[] }): string {
 }
 
 function renderMarkdownPreview(markdown: string, width: number, theme: Theme): string[] {
-	const output: string[] = [theme.fg("muted", titleLine("preview", width, "╭"))];
+	const output: string[] = [];
 	const lines = markdown.replace(/\r\n/g, "\n").split("\n");
 	let inCodeBlock = false;
 	let codeLang: string | undefined;
@@ -108,7 +108,6 @@ function renderMarkdownPreview(markdown: string, width: number, theme: Theme): s
 
 	if (inCodeBlock) flushCodeBlock();
 
-	output.push(theme.fg("muted", titleLine("", width, "╰")));
 	return truncateLines(output, theme);
 }
 
@@ -147,13 +146,14 @@ function renderMarkdownLine(line: string, width: number, theme: Theme): string[]
 }
 
 function renderCodeBlock(lines: string[], lang: string | undefined, width: number, theme: Theme): string[] {
-	const label = lang ? ` ${lang} ` : " code ";
-	const output = [theme.fg("mdCodeBlockBorder", titleLine(label.trim(), width, "╭"))];
 	const highlighted = highlightCode(lines.join("\n"), lang);
-	for (const line of highlighted) {
-		output.push(theme.fg("mdCodeBlockBorder", "│ ") + line);
+	const output: string[] = [];
+	if (lang) {
+		output.push(theme.fg("muted", `  ${lang}`));
 	}
-	output.push(theme.fg("mdCodeBlockBorder", titleLine("", width, "╰")));
+	for (const line of highlighted) {
+		output.push("  " + line);
+	}
 	return output;
 }
 
