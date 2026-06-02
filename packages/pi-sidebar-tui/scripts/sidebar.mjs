@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
 
 const stateFile = process.argv[2];
@@ -90,6 +91,37 @@ function meta(label, value, width) {
 	return paint(c.muted, label.padEnd(8)) + " " + paint(c.text, String(value ?? "n/a"));
 }
 
+function readGitStatus(repoPath) {
+	if (typeof repoPath !== "string" || repoPath.length === 0) return null;
+	const targetPath = activePiWorktreeRoot(repoPath) ?? repoPath;
+	try {
+		const branch = execFileSync("git", ["branch", "--show-current"], { cwd: targetPath, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || "detached";
+		const output = execFileSync("git", ["status", "--short", "--untracked-files=all"], {
+			cwd: targetPath,
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "ignore"],
+		});
+		const changes = output
+			.split("\n")
+			.map((line) => line.trimEnd())
+			.filter(Boolean)
+			.map((line) => ({ status: line.slice(0, 2), path: line.slice(3) || line.slice(2).trim() }));
+		return { cwd: targetPath === repoPath ? undefined : path.relative(repoPath, targetPath) || path.basename(targetPath), branch, changes, checkedAt: Date.now() };
+	} catch {
+		return null;
+	}
+}
+
+function activePiWorktreeRoot(repoPath) {
+	try {
+		const state = JSON.parse(fs.readFileSync(path.join(repoPath, ".git", "pi-worktree-state.json"), "utf8"));
+		if ((state?.mode === "active" || state?.mode === "conflict") && typeof state?.worktreeRoot === "string") return state.worktreeRoot;
+	} catch {
+		// No pi-worktree state or inactive main checkout.
+	}
+	return undefined;
+}
+
 function statusColor(status) {
 	if (status.includes("?")) return c.cyan;
 	if (status.includes("D")) return c.red;
@@ -101,9 +133,14 @@ function statusColor(status) {
 
 function render(force = false) {
 	const state = readState();
+	const liveStatus = readGitStatus(state.repoPath);
+	const cwd = liveStatus?.cwd ?? state.cwd;
+	const branch = liveStatus?.branch ?? state.branch;
+	const changes = liveStatus?.changes ?? (Array.isArray(state.changes) ? state.changes : []);
+	const updatedAt = liveStatus?.checkedAt ?? state.updatedAt;
 	const width = Math.max(24, process.stdout.columns || 34);
 	const height = Math.max(8, process.stdout.rows || 24);
-	const renderKey = `${width}x${height}:${cachedMtime}:${JSON.stringify(state)}`;
+	const renderKey = `${width}x${height}:${cachedMtime}:${JSON.stringify({ state, branch, changes })}`;
 	if (!force && renderKey === lastRenderKey) return;
 	lastRenderKey = renderKey;
 	const inner = Math.max(1, width - 2);
@@ -111,12 +148,11 @@ function render(force = false) {
 	const titleWidth = visibleWidth(title);
 	const left = "─".repeat(Math.max(0, Math.floor((inner - titleWidth) / 2)));
 	const right = "─".repeat(Math.max(0, inner - titleWidth - left.length));
-	const changes = Array.isArray(state.changes) ? state.changes : [];
 	const rows = [paint(c.border, `╭${left}`) + title + paint(c.border, `${right}╮`)];
 
 	rows.push(row(paint(c.cyan, paint(c.bold, "FILE CHANGES")), inner));
-	rows.push(row(meta("cwd", state.cwd, inner), inner));
-	rows.push(row(meta("branch", state.branch, inner), inner));
+	rows.push(row(meta("cwd", cwd, inner), inner));
+	rows.push(row(meta("branch", branch, inner), inner));
 	rows.push(row(meta("count", changes.length, inner), inner));
 	rows.push(row("", inner));
 
@@ -132,7 +168,7 @@ function render(force = false) {
 
 	rows.push(row("", inner));
 	rows.push(row(paint(c.muted, "?? new  M modified  D deleted"), inner));
-	rows.push(row(meta("updated", new Date(state.updatedAt).toLocaleTimeString(), inner), inner));
+	rows.push(row(meta("updated", new Date(updatedAt).toLocaleTimeString(), inner), inner));
 	rows.push(row(paint(c.muted, "q / Esc closes pane"), inner));
 
 	while (rows.length < height - 1) rows.push(row("", inner));

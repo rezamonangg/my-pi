@@ -1,12 +1,12 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const STATUS_KEY = "sidebar";
-const PANE_TITLE = "pi-sidebar-tui";
+const PANE_TITLE = `pi-sidebar-tui:${process.pid}`;
 const STATE_FILE = join(tmpdir(), `pi-sidebar-${process.pid}.json`);
 const SIDEBAR_SCRIPT = fileURLToPath(new URL("../../scripts/sidebar.mjs", import.meta.url));
 
@@ -34,11 +34,10 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", async (_event, ctx) => {
 		writeState(ctx, turnCount);
-		ctx.ui.setStatus(STATUS_KEY, ctx.ui.theme.fg("dim", "sidebar off"));
 	});
 
-	pi.on("session_shutdown", async () => {
-		closeSidebar();
+	pi.on("session_shutdown", async (event) => {
+		if (event.reason !== "reload") closeSidebar();
 	});
 
 	pi.on("turn_start", async (_event, ctx) => {
@@ -67,9 +66,10 @@ export default function (pi: ExtensionAPI) {
 			}
 			sidebarPaneId = undefined;
 
-			// If a previous Pi process left a sidebar pane alive, remove it before opening
-			// a new one. This prevents stale sidebars from another repository/session.
-			killSidebarPanes();
+			// If this same Pi process left a sidebar pane alive after /reload,
+			// remove it before opening a new one. Scope by this process' state file
+			// so /sidebar in one repo never closes sidebars in other repos/sessions.
+			killSidebarPanesForStateFile();
 
 			if (!process.env.TMUX) {
 				ctx.ui.notify("Sidebar needs tmux. Start pi inside tmux, then run /sidebar.", "warning");
@@ -104,6 +104,7 @@ function writeState(ctx: ExtensionContext, turns: number): void {
 	const target = selectStatusTarget(ctx.cwd);
 	const state = {
 		cwd: target.label,
+		repoPath: target.path,
 		branch: target.branch,
 		changes: target.changes,
 		model: ctx.model?.id ?? "none",
@@ -132,8 +133,8 @@ function paneExists(paneId: string): boolean {
 	}
 }
 
-function killSidebarPanes(): void {
-	for (const paneId of sidebarPaneIds()) {
+function killSidebarPanesForStateFile(): void {
+	for (const paneId of sidebarPaneIdsForStateFile()) {
 		try {
 			execFileSync("tmux", ["kill-pane", "-t", paneId], { stdio: "ignore" });
 		} catch {
@@ -142,18 +143,16 @@ function killSidebarPanes(): void {
 	}
 }
 
-function sidebarPaneIds(): string[] {
+function sidebarPaneIdsForStateFile(): string[] {
 	try {
-		const output = execFileSync("tmux", ["list-panes", "-a", "-F", "#{pane_id}\t#{pane_title}\t#{pane_current_command}\t#{pane_start_command}"], {
+		const output = execFileSync("tmux", ["list-panes", "-a", "-F", "#{pane_id}\t#{pane_start_command}"], {
 			encoding: "utf8",
 			stdio: ["ignore", "pipe", "ignore"],
 		});
 		return output
 			.split("\n")
 			.map((line) => line.split("\t"))
-			.filter(([paneId, title, command, startCommand]) =>
-				Boolean(paneId) && (title === PANE_TITLE || command === "sidebar.mjs" || (startCommand?.includes("/scripts/sidebar.mjs") ?? false)),
-			)
+			.filter(([paneId, startCommand]) => Boolean(paneId) && (startCommand?.includes(STATE_FILE) ?? false))
 			.map(([paneId]) => paneId!);
 	} catch {
 		return [];
@@ -169,12 +168,23 @@ type StatusTarget = {
 
 function selectStatusTarget(cwd: string): StatusTarget {
 	const root = gitRoot(cwd) ?? cwd;
+	const path = activePiWorktreeRoot(root) ?? root;
 	return {
-		path: root,
-		label: basename(root),
-		branch: currentBranch(root),
-		changes: currentChanges(root),
+		path,
+		label: path === root ? basename(root) : relative(root, path) || basename(path),
+		branch: currentBranch(path),
+		changes: currentChanges(path),
 	};
+}
+
+function activePiWorktreeRoot(repoRoot: string): string | undefined {
+	try {
+		const state = JSON.parse(readFileSync(join(repoRoot, ".git", "pi-worktree-state.json"), "utf8"));
+		if ((state?.mode === "active" || state?.mode === "conflict") && typeof state?.worktreeRoot === "string") return state.worktreeRoot;
+	} catch {
+		// No pi-worktree state or inactive main checkout.
+	}
+	return undefined;
 }
 
 function gitRoot(cwd: string): string | undefined {
