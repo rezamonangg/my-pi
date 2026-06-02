@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const STATUS_KEY = "sidebar";
 const PANE_TITLE = `pi-sidebar-tui:${process.pid}`;
 const STATE_FILE = join(tmpdir(), `pi-sidebar-${process.pid}.json`);
-const SIDEBAR_SCRIPT = fileURLToPath(new URL("../../scripts/sidebar.mjs", import.meta.url));
+const SIDEBAR_SCRIPT = fileURLToPath(new URL("../scripts/sidebar.mjs", import.meta.url));
 
 type UsageTotals = {
 	input: number;
