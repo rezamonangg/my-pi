@@ -86,7 +86,7 @@ npm run typecheck
 ```json
 {
   "pi": {
-    "extensions": ["./extensions/pi-sidebar-tui/index.ts"],
+    "extensions": ["./extensions/index.ts"],
     "themes": ["./themes"]
   }
 }
