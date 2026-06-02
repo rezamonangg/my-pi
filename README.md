@@ -7,6 +7,7 @@ Curated Pi packages, extensions, and skills I use.
 | Package | Location |
 |---|---|
 | `pi-worktree` | [`packages/pi-worktree`](packages/pi-worktree) |
+| `pi-sidebar-tui` | [`packages/pi-sidebar-tui`](packages/pi-sidebar-tui) |
 
 ## Curated Pi List
 
