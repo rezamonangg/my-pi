@@ -35,3 +35,4 @@ Curated Pi packages, extensions, and skills I use.
 | `mermaid` | https://github.com/mitsuhiko/agent-stuff/tree/main/skills/mermaid |
 | `tdd` | https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd |
 | `tmux` | https://github.com/mitsuhiko/agent-stuff/tree/main/skills/tmux |
+| `with-evidence` | [`skills/with-evidence`](skills/with-evidence) |
